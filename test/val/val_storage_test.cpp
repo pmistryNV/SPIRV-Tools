@@ -253,21 +253,31 @@ TEST_F(ValidateStorage, RelaxedLogicalPointerFunctionParamBad) {
 
 std::string GenerateExecutionModelCode(const std::string& execution_model,
                                        const std::string& storage_class,
-                                       bool store) {
+                                       bool store, bool spirv1_4 = false) {
   const std::string mode = (execution_model.compare("GLCompute") == 0)
                                ? "OpExecutionMode %func LocalSize 1 1 1"
                                : "";
   const std::string operation =
       (store) ? "OpStore %var %int0" : "%load = OpLoad %intt %var";
+  const std::string capability1_4 =
+      (spirv1_4) ? "OpCapability ShaderExecutionReorderNV" : "";
+  const std::string extension1_4 =
+      (spirv1_4) ? "OpExtension  \"SPV_NV_shader_execution_reorder\"" : "";
+
   std::ostringstream ss;
   ss << R"(
               OpCapability Shader
-              OpCapability RayTracingKHR
-              OpExtension "SPV_KHR_ray_tracing"
-              OpMemoryModel Logical GLSL450
+              OpCapability RayTracingKHR 
+              )"
+     << capability1_4 << R"(
+              OpExtension "SPV_KHR_ray_tracing" 
+              )"
+     << extension1_4 << R"(
+              OpMemoryModel Logical GLSL450 
               OpEntryPoint )"
      << execution_model << R"( %func "func" %var
-              )" << mode << R"(
+              )"
+     << mode << R"(
               OpDecorate %var Location 0
 %intt       = OpTypeInt 32 0
 %int0       = OpConstant %intt 0
@@ -275,14 +285,16 @@ std::string GenerateExecutionModelCode(const std::string& execution_model,
 %vfunct     = OpTypeFunction %voidt
 %ptr        = OpTypePointer )"
      << storage_class << R"( %intt
-%var        = OpVariable %ptr )" << storage_class << R"(
+%var        = OpVariable %ptr )"
+     << storage_class << R"(
 %func       = OpFunction %voidt None %vfunct
 %funcl      = OpLabel
-              )" << operation << R"(
+              )"
+     << operation << R"(
               OpReturn
               OpFunctionEnd
 )";
-
+  // std::cout << ss.str();
   return ss.str();
 }
 
@@ -514,6 +526,27 @@ TEST_P(ValidateStorageExecutionModel, IncomingRayPayloadLoad) {
         getDiagnosticString(),
         HasSubstr("IncomingRayPayloadKHR Storage Class is limited to "
                   "AnyHitKHR, ClosestHitKHR, and MissKHR execution model"));
+  }
+}
+
+TEST_P(ValidateStorageExecutionModel, HitObjectAttributeNV) {
+  std::string execution_model = GetParam();
+
+  CompileSuccessfully(GenerateExecutionModelCode(
+                          execution_model, "HitObjectAttributeNV", true, true)
+                          .c_str(),
+                      SPV_ENV_VULKAN_1_2);
+  if (execution_model.compare("RayGenerationKHR") == 0 ||
+      execution_model.compare("ClosestHitKHR") == 0 ||
+      execution_model.compare("MissKHR") == 0) {
+    ASSERT_EQ(SPV_SUCCESS, ValidateInstructions(SPV_ENV_VULKAN_1_2));
+  } else {
+    ASSERT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions(SPV_ENV_VULKAN_1_2));
+    EXPECT_THAT(
+        getDiagnosticString(),
+        HasSubstr(
+            "HitObjectAttributeNV Storage Class is limited to "
+            "RayGenerationKHR, ClosestHitKHR or MissKHR execution model"));
   }
 }
 
