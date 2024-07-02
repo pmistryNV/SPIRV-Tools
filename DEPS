@@ -5,15 +5,15 @@ vars = {
 
   'abseil_revision': '79ca5d7aad63973c83a4962a66ab07cd623131ea',
 
-  'effcee_revision': '19b4aa87af25cb4ee779a071409732f34bfc305c',
+  'effcee_revision': 'd74d33d93043952a99ae7cd7458baf6bc8df1da0',
 
-  'googletest_revision': 'eff443c6ef5eb6ab598bfaae27f9427fdb4f6af7',
+  'googletest_revision': '34ad51b3dc4f922d8ab622491dd44fc2c39afee9',
 
   # Use protobufs before they gained the dependency on abseil
   'protobuf_revision': 'v21.12',
 
-  're2_revision': '917047f3606d3ba9e2de0d383c3cd80c94ed732c',
-  'spirv_headers_revision': '4f7b471f1a66b6d06462cd4ba57628cc0cd087d7',
+  're2_revision': '6dcd83d60f7944926bfd308cc13979fc53dd69ca',
+  'spirv_headers_revision': '2acb319af38d43be3ea76bfabf3998e5281d8d12',
 }
 
 deps = {
